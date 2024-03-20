@@ -105,6 +105,11 @@ class shd_warp_t {
     m_inst_in_pipeline = 0;
     reset();
   }
+
+  //PA2
+  bool branch_flg = 0;
+  bool branch_div_flg = 0;
+
   void reset() {
     assert(m_stores_outstanding == 0);
     assert(m_inst_in_pipeline == 0);
@@ -242,6 +247,9 @@ class shd_warp_t {
  private:
   static const unsigned IBUFFER_SIZE = 2;
   class shader_core_ctx *m_shader;
+
+  
+
   unsigned m_cta_id;
   unsigned m_warp_id;
   unsigned m_warp_size;
@@ -1677,6 +1685,11 @@ struct shader_core_stats_pod {
   int gpgpu_n_mem_const;
   int gpgpu_n_mem_read_global;
   int gpgpu_n_mem_write_global;
+
+  //PA2 task4
+  int gpgpu_n_mem_access_global;
+  int gpgpu_n_mem_access_local;
+
   int gpgpu_n_mem_read_inst;
 
   int gpgpu_n_mem_l2_writeback;
@@ -1689,6 +1702,12 @@ struct shader_core_stats_pod {
   unsigned *gpgpu_n_shmem_bank_access;
   long *n_simt_to_mem;  // Interconnect power stats
   long *n_mem_to_simt;
+
+  //PA2
+  // unsigned *num_warp_per_shader_ex_branch;
+  // unsigned *num_warp_per_shader_ex_div_branch;
+  unsigned long long num_warp_ex_div_branch = 0;
+  unsigned long long num_warp_ex_branch = 0;
 };
 
 class shader_core_stats : public shader_core_stats_pod {
@@ -1795,6 +1814,10 @@ class shader_core_stats : public shader_core_stats_pod {
 
     m_shader_dynamic_warp_issue_distro.resize(config->num_shader());
     m_shader_warp_slot_issue_distro.resize(config->num_shader());
+
+    //PA2
+    // num_warp_per_shader_ex_branch=(unsigned *)calloc(config->num_shader(), sizeof(unsigned));
+    // num_warp_per_shader_ex_div_branch=(unsigned *)calloc(config->num_shader(), sizeof(unsigned));
   }
 
   ~shader_core_stats() {

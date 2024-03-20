@@ -582,6 +582,9 @@ float shader_core_ctx::get_current_occupancy(unsigned long long &active,
 void shader_core_stats::print(FILE *fout) const {
   unsigned long long thread_icount_uarch = 0;
   unsigned long long warp_icount_uarch = 0;
+  //PA2 task3
+  // unsigned long long num_warp_ex_div_branch = 0;
+  // unsigned long long num_warp_ex_branch = 0;
 
   for (unsigned i = 0; i < m_config->num_shader(); i++) {
     thread_icount_uarch += m_num_sim_insn[i];
@@ -595,6 +598,12 @@ void shader_core_stats::print(FILE *fout) const {
   fprintf(fout, "gpgpu_n_mem_write_local = %d\n", gpgpu_n_mem_write_local);
   fprintf(fout, "gpgpu_n_mem_read_global = %d\n", gpgpu_n_mem_read_global);
   fprintf(fout, "gpgpu_n_mem_write_global = %d\n", gpgpu_n_mem_write_global);
+
+  //PA2 task4
+  fprintf(fout, "# of global memory access: %d\n", gpgpu_n_mem_access_global);
+  fprintf(fout, "# of local memory access: %d\n", gpgpu_n_mem_access_local);
+
+
   fprintf(fout, "gpgpu_n_mem_texture = %d\n", gpgpu_n_mem_texture);
   fprintf(fout, "gpgpu_n_mem_const = %d\n", gpgpu_n_mem_const);
 
@@ -705,6 +714,16 @@ void shader_core_stats::print(FILE *fout) const {
 
   m_outgoing_traffic_stats->print(fout);
   m_incoming_traffic_stats->print(fout);
+
+  //PA2 task3
+  // for (unsigned i = 0; i < m_config->num_shader(); i++) {
+  //   num_warp_ex_div_branch += num_warp_per_shader_ex_div_branch[i];
+  //   num_warp_ex_branch += num_warp_per_shader_ex_branch[i];
+  // }
+  fprintf(fout, "# of warps executed conditional branch instructions and have divergence:%d\n",num_warp_ex_div_branch);
+  fprintf(fout, "# of warps executed conditional branches(no matter they have divergence or not):%d\n",num_warp_ex_branch);
+  
+  
 }
 
 void shader_core_stats::event_warp_issued(unsigned s_id, unsigned warp_id,
@@ -1209,6 +1228,8 @@ void scheduler_unit::cycle() {
 
             const active_mask_t &active_mask =
                 m_shader->get_active_mask(warp_id, pI);
+              
+
 
             assert(warp(warp_id).inst_in_pipeline());
 
@@ -1222,12 +1243,27 @@ void scheduler_unit::cycle() {
                    previous_issued_inst_exec_type != exec_unit_type_t::MEM)) {
                 m_shader->issue_warp(*m_mem_out, pI, active_mask, warp_id,
                                      m_id);
+                
+
                 issued++;
                 issued_inst = true;
                 warp_inst_issued = true;
                 previous_issued_inst_exec_type = exec_unit_type_t::MEM;
               }
             } else {
+              //PA2 task3
+              if((pI->op == BRANCH_OP) && ((*iter)->branch_flg == 0)){
+                // (*iter)->branch_flg = 1;
+                m_stats->num_warp_ex_branch++;
+                (*iter)->branch_flg = 1;
+              }
+              //PA2 task3
+                if((pI->op == BRANCH_OP) && (!active_mask.all()) && ((*iter)->branch_div_flg == 0)){
+                  m_stats->num_warp_ex_div_branch++;
+                  (*iter)->branch_div_flg = 1;
+                }
+              
+
               bool sp_pipe_avail =
                   (m_shader->m_config->gpgpu_num_sp_units > 0) &&
                   m_sp_out->has_free(m_shader->m_config->sub_core_model, m_id);
@@ -1382,6 +1418,8 @@ void scheduler_unit::cycle() {
             "Warp (warp_id %u, dynamic_warp_id %u) return from diverged warp "
             "flush\n",
             (*iter)->get_warp_id(), (*iter)->get_dynamic_warp_id());
+        
+
         warp(warp_id).set_next_pc(pc);
         warp(warp_id).ibuffer_flush();
       }
@@ -2078,11 +2116,18 @@ bool ldst_unit::memory_cycle(warp_inst_t &inst,
   if (stall_cond != NO_RC_FAIL) {
     stall_reason = stall_cond;
     bool iswrite = inst.is_store();
-    if (inst.space.is_local())
+    if (inst.space.is_local()){
       access_type = (iswrite) ? L_MEM_ST : L_MEM_LD;
+    }
     else
       access_type = (iswrite) ? G_MEM_ST : G_MEM_LD;
   }
+  //PA2 Task4 - count access request no matter memory is busy or not
+  if (inst.space.is_local())
+    m_stats->gpgpu_n_mem_access_local++;
+  if (inst.space.is_global())
+    m_stats->gpgpu_n_mem_access_global++;
+
   return inst.accessq_empty();
 }
 
@@ -2574,6 +2619,7 @@ void ldst_unit::cycle() {
         m_response_fifo.pop_front();
       }
     } else {
+      
       if (mf->get_type() == WRITE_ACK ||
           (m_config->gpgpu_perfect_mem && mf->get_is_write())) {
         m_core->store_ack(mf);
@@ -4258,23 +4304,38 @@ void simt_core_cluster::icnt_inject_request_packet(class mem_fetch *mf) {
       break;
     case GLOBAL_ACC_R:
       m_stats->gpgpu_n_mem_read_global++;
+
+      //PA2 task4 this is just request sent to interconnect, which is subset
+      // m_stats->gpgpu_n_mem_access_global++;
+      
       break;
-    // case GLOBAL_ACC_R: m_stats->gpgpu_n_mem_read_global++;
-    // printf("read_global%d\n",m_stats->gpgpu_n_mem_read_global); break;
+    
     case GLOBAL_ACC_W:
       m_stats->gpgpu_n_mem_write_global++;
+
+      //PA2 task4 this is just request sent to interconnect, which is subset
+      // m_stats->gpgpu_n_mem_access_global++;
+
       break;
     case LOCAL_ACC_R:
       m_stats->gpgpu_n_mem_read_local++;
+
+      //PA2 task4 this is just request sent to interconnect, which is subset
+      // m_stats->gpgpu_n_mem_access_local++;
+
       break;
     case LOCAL_ACC_W:
       m_stats->gpgpu_n_mem_write_local++;
+      //PA2 task4 this is just request sent to interconnect, which is subset
+      // m_stats->gpgpu_n_mem_access_local++;
+
       break;
     case INST_ACC_R:
       m_stats->gpgpu_n_mem_read_inst++;
       break;
     case L1_WRBK_ACC:
       m_stats->gpgpu_n_mem_write_global++;
+
       break;
     case L2_WRBK_ACC:
       m_stats->gpgpu_n_mem_l2_writeback++;
