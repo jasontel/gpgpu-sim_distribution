@@ -2053,7 +2053,7 @@ bool ldst_unit::memory_cycle(warp_inst_t &inst,
   if(inst.is_load()){
     for(int i=0; i<32; i++){
       if((inst.get_addr(i) >= 0xc0000000) && (inst.get_addr(i) <= 0xc00fffff)){
-        bypassL1D = true;
+        // bypassL1D = true;
         m_stats -> L1D_bypassed_load_inst_count++;
         break;
       }
