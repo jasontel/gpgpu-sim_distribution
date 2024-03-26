@@ -2055,7 +2055,7 @@ bool ldst_unit::memory_cycle(warp_inst_t &inst,
         bypassL1D = true;
         m_stats -> L1D_bypassed_load_inst_count++;
     }
-  }
+  
   //PA3 count each thread?
   // for(int i=0; i<32; i++){
   // if((inst.get_addr(i) >= 0xc0000000) && (inst.get_addr(i) <= 0xc00fffff))
