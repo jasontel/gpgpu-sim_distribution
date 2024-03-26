@@ -1650,6 +1650,10 @@ struct shader_core_stats_pod {
   unsigned *m_n_diverge;  // number of divergence occurring in this shader
   unsigned gpgpu_n_load_insn;
   unsigned gpgpu_n_store_insn;
+
+  //PA3
+  unsigned L1D_bypassed_load_inst_count;
+
   unsigned gpgpu_n_shmem_insn;
   unsigned gpgpu_n_sstarr_insn;
   unsigned gpgpu_n_tex_insn;

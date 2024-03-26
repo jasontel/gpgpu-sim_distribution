@@ -598,6 +598,9 @@ void shader_core_stats::print(FILE *fout) const {
   fprintf(fout, "gpgpu_n_mem_texture = %d\n", gpgpu_n_mem_texture);
   fprintf(fout, "gpgpu_n_mem_const = %d\n", gpgpu_n_mem_const);
 
+  //PA3
+  fprintf(fout, "bypassed load instructions: %d\n", L1D_bypassed_load_inst_count);
+  
   fprintf(fout, "gpgpu_n_load_insn  = %d\n", gpgpu_n_load_insn);
   fprintf(fout, "gpgpu_n_store_insn = %d\n", gpgpu_n_store_insn);
   fprintf(fout, "gpgpu_n_shmem_insn = %d\n", gpgpu_n_shmem_insn);
@@ -2046,6 +2049,17 @@ bool ldst_unit::memory_cycle(warp_inst_t &inst,
     if (m_core->get_config()->gmem_skip_L1D && (CACHE_L1 != inst.cache_op))
       bypassL1D = true;
   }
+  
+  if(inst.is_load()){
+    for(int i=0; i<32; i++){
+      if((inst.get_addr(i) >= 0xc0000000) && (inst.get_addr(i) <= 0xc00fffff)){
+        bypassL1D = true;
+        m_stats -> L1D_bypassed_load_inst_count++;
+        break;
+      }
+    }
+  }
+
   if (bypassL1D) {
     // bypass L1 cache
     unsigned control_size =
