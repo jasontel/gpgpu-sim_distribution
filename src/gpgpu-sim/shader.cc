@@ -2040,7 +2040,7 @@ bool ldst_unit::memory_cycle(warp_inst_t &inst,
 
   mem_stage_stall_type stall_cond = NO_RC_FAIL;
   const mem_access_t &access = inst.accessq_back();
-
+  
   bool bypassL1D = false;
   if (CACHE_GLOBAL == inst.cache_op || (m_L1D == NULL)) {
     bypassL1D = true;
@@ -2050,15 +2050,15 @@ bool ldst_unit::memory_cycle(warp_inst_t &inst,
       bypassL1D = true;
   }
   
-  if(inst.is_load()){
-    for(int i=0; i<32; i++){
-      if((inst.get_addr(i) >= 0xc0000000) && (inst.get_addr(i) <= 0xc00fffff)){
-        // bypassL1D = true;
+  //PA3 count in warp granularity
+  if(inst.is_load() && ((access.get_addr() >= 0xc0000000) && (access.get_addr() <= 0xc00fffff))){
+        bypassL1D = true;
         m_stats -> L1D_bypassed_load_inst_count++;
-        break;
-      }
     }
   }
+  //PA3 count each thread?
+  // for(int i=0; i<32; i++){
+  // if((inst.get_addr(i) >= 0xc0000000) && (inst.get_addr(i) <= 0xc00fffff))
 
   if (bypassL1D) {
     // bypass L1 cache
