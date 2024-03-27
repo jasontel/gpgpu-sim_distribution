@@ -2605,6 +2605,12 @@ void ldst_unit::cycle() {
                        GLOBAL_ACC_W) {  // global memory access
           if (m_core->get_config()->gmem_skip_L1D) bypassL1D = true;
         }
+        //PA3 
+        if(inst.is_load() && ((access.get_addr() >= 0xc0000000) && (access.get_addr() <= 0xc00fffff))){
+              bypassL1D = true;
+              m_stats -> L1D_bypassed_load_inst_count++;
+          }
+
         if (bypassL1D) {
           if (m_next_global == NULL) {
             mf->set_status(IN_SHADER_FETCHED,
