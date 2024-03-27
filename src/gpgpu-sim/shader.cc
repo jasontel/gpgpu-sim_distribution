@@ -2053,7 +2053,7 @@ bool ldst_unit::memory_cycle(warp_inst_t &inst,
   //PA3 count in warp granularity
   if(inst.is_load() && ((access.get_addr() >= 0xc0000000) && (access.get_addr() <= 0xc00fffff))){
         bypassL1D = true;
-        // m_stats -> L1D_bypassed_load_inst_count++; already count in cycle function
+        m_stats -> L1D_bypassed_load_inst_count++;
     }
   
   //PA3 count each thread?
@@ -2608,7 +2608,7 @@ void ldst_unit::cycle() {
         //PA3 
         if(mf->get_inst().is_load() && ((mf->get_addr() >= 0xc0000000) && (mf->get_addr() <= 0xc00fffff))){
               bypassL1D = true;
-              m_stats -> L1D_bypassed_load_inst_count++;
+              // m_stats -> L1D_bypassed_load_inst_count++;
           }
 
         if (bypassL1D) {
