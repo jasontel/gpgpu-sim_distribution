@@ -2606,7 +2606,8 @@ void ldst_unit::cycle() {
           if (m_core->get_config()->gmem_skip_L1D) bypassL1D = true;
         }
         //PA3 
-        if(mf->get_inst().is_load() && ((mf->get_addr() >= 0xc0000000) && (mf->get_addr() <= 0xc00fffff))){
+        // mf->get_inst().is_load() 
+        if((mf->get_addr() >= 0xc0000000) && (mf->get_addr() <= 0xc00fffff)){
               bypassL1D = true;
               // m_stats -> L1D_bypassed_load_inst_count++;
           }
